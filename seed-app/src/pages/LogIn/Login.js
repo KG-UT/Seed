@@ -64,8 +64,6 @@ const Login = () => {
   
   const handleOnClick = (e) => {
 
-    e.preventDefault();
-
     const username = document.getElementById("email").value;
     
     const url = '/api/login';
@@ -130,17 +128,17 @@ const Login = () => {
               control={<Checkbox value="remember" color="primary" />}
               label="Remember me"
             />
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              color="primary"
-              href={"http://localhost:3000/dashboard"}
-              className={classes.submit}
-              onClick={handleOnClick}
-            >
-              Sign In
-            </Button>
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                color="primary"
+                href="/dashboard"
+                className={classes.submit}
+                onClick={handleOnClick}
+              >
+                Sign In
+              </Button>
             <Grid container>
               <Grid item xs>
                 <Link href="#" variant="body2">
