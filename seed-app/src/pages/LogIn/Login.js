@@ -61,6 +61,38 @@ const useStyles = makeStyles(theme => ({
 
 const Login = () => {
   const classes = useStyles();
+  
+  const handleOnClick = (e) => {
+
+    e.preventDefault();
+
+    const username = document.getElementById("email").value;
+    
+    const url = '/api/login';
+    let data = {
+        username: username
+    };
+
+    const request = new Request(url, {
+        method: 'post', 
+        body: JSON.stringify(data),
+        headers: {
+            'Accept': 'application/json, text/plain, */*',
+            'Content-Type': 'application/json'
+        },
+    });
+    
+    fetch(request).then(res => {
+        if (res.status === 200) {
+            console.log('Added user to database')
+            return res.status
+        } else {
+            console.log('could not add user to database')
+        }                        
+    }).catch((error) => {
+        console.log(error)
+    })
+  }
 
   return (
     <Grid container component="main" className={classes.root}>
@@ -105,6 +137,7 @@ const Login = () => {
               color="primary"
               href={"http://localhost:3000/dashboard"}
               className={classes.submit}
+              onClick={handleOnClick}
             >
               Sign In
             </Button>
