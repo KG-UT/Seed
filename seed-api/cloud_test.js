@@ -58,7 +58,6 @@ userCharity = userCharitiesRef.add({charity: "Sick kids"})
 
 let userBudgetRef = userRef.doc('testUser').collection('budget')
 userBudget = userBudgetRef.doc("bubble tea").set({
-    item: "bubble tea",
     monthlySpending: 17,
     monthlyCap: 20,
     charity: "Sick kids",
