@@ -76,7 +76,9 @@ let userCollectionRef = db.collection('users');
 /**************** user Routes ***************/
 
 
-// login user
+/**** LOGIN/LOGOUT *****/
+
+// login user (Creates user if they don't already exist)
 app.post("/api/login", (req, res) => {
   
     const username = req.body.username
@@ -101,14 +103,101 @@ app.get("/api/logout", (req, res) => {
     });
   });
 
-// make purchases for credit card
 
+/******* Virtual Credit Card ******/  
+// make a transaction
 app.post("/api/card", (req, res) => {
-    
+    const username = req.session.username
+    const item = req.body.item
+    const price = req.body.price
 
-    userCollectionRef.doc(username)
-    .set({user: username})
-    .catch(error => {
+    const userTransactionRef = userRef.doc(username).collection('transactions')
+    userTransactionRef.add({
+        item: item,
+        price: price
+    }).then(transaction => {
+        userBudgetRef = userRef.doc(username).collection('budget').doc(item)
+        // if that item has a monthly budget, then add to the current spending on that item
+        userBudgetRef.get().then(doc => {
+          if (doc.exists) {
+            const itemBudgetData = userBudgetRef.get().data()
+            // donate money to charity if we are already over cap
+            if (itemBudgetData.monthlySpending >= itemBudgetData.monthlyCap){
+              userTransactionRef.add({
+                item: itemBudgetData.charity,
+                price: itemBudgetData.charityDonation*price
+              }).catch(error => {"error donating money to charity"})
+            }
+            // update monthly spending on that item
+            userBudgetRef.set({
+              monthlySpending: itemBudgetData.monthlySpending + price
+            }).catch(error => {"error updating monthly spending"})
+          }
+        })
+
+    }).catch(error => {
         res.status(500).send(error);
     });
   });
+
+// get all the user's transactions
+app.get("/api/card", (req, res) => {
+    username = req.session.username
+
+    const userTransactionRef = userRef.doc(username).collection('transactions')
+    res.send(userTransactionRef.get().data())
+  });
+
+
+/***** Budget and charity tax ******/
+
+// Create or update a budget + impose "charity tax"
+app.post("/api/budget/create", (req, res) => {
+  const username = req.session.username
+  const item = req.body.item
+  const monthlyBudget = req.body.monthlyBudget
+  const charity = req.body.charity
+  const charityDonation = req.body.charityDonation
+
+  const userBudgetRef = userRef.doc(username).collection('budget')
+  userBudgetRef.doc(item).set({
+    monthlyBudget: monthlyBudget,
+    charity: charity,
+    charityDonation: charityDonation
+  })
+});
+
+/****** Get all charity payments ******/
+app.get("/api/charity", (req, res) => {
+  const username = req.session.username
+  const userTransactions = userRef.doc(username).collection('transactions').get()
+  let charity
+  let totalPaid
+  const charityPayments = [];
+
+  const userCharities = userRef.doc('testUser').collection('charities').select('charity').get()
+  userCharities.foreach(documentSnapshot => {
+    charity = documentSnapshot.data().charity
+    totalPaid = 0
+
+    userTransactions.foreach(transactionSnapshot => {
+      if (charity == transactionSnapshot.data().item){
+        totalPaid = totalPaid + transactionSnapshot.data().price
+      }
+    })
+    
+    charityPayments.push({charity: charity, totalDonated: totalPaid})
+  })
+  res.send(charityPayments)
+});
+
+
+/******* Add a charity ******/
+app.post("/api/charity", (req, res) => {
+  const username = req.session.username
+  const userCharitiesRef = userRef.doc(username).collection('charities')
+  const charity = req.body.charity
+  userCharitiesRef.add({
+    charity: charity
+  })
+});
